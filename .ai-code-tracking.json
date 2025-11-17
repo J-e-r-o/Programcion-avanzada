@@ -1,0 +1,77 @@
+{
+  "version": "1.0",
+  "records": [
+    {
+      "filePath": "C:/Users/jeron/OneDrive/Desktop/Este_semestre/PROG/playlist/src/main/java/um/playlist/model/Video.java",
+      "timestamp": 1763381560890,
+      "startOffset": 58,
+      "endOffset": 943,
+      "codeContent": "\n@Entity\npublic class Video {\n    @Id @GeneratedValue(strategy \u003d GenerationType.IDENTITY)\n    private Long id;\n    private String title;\n    private String url;\n    private int likes \u003d 0;\n    private boolean favorite \u003d false;\n\n    public Long getId() {\n        return id;\n    }\n\n    public boolean isFavorite() {\n        return favorite;\n    }\n\n    public void setFavorite(boolean favorite) {\n        this.favorite \u003d favorite;\n    }\n\n    public int getLikes() {\n        return likes;\n    }\n\n    public void setLikes(int likes) {\n        this.likes \u003d likes;\n    }\n\n    public String getUrl() {\n        return url;\n    }\n\n    public void setUrl(String url) {\n        this.url \u003d url;\n    }\n\n    public String getTitle() {\n        return title;\n    }\n\n    public void setTitle(String title) {\n        this.title \u003d title;\n    }\n\n    public void setId(Long id) {\n        this.id \u003d id;\n    }\n",
+      "aiProbability": 95,
+      "aiTool": "AI Assistant",
+      "detectionMethod": "REALTIME_SPEED_ANALYSIS",
+      "lineCount": 50
+    },
+    {
+      "filePath": "C:/Users/jeron/OneDrive/Desktop/Este_semestre/PROG/playlist/src/main/java/um/playlist/model/Video.java",
+      "timestamp": 1763381590603,
+      "startOffset": 28,
+      "endOffset": 89,
+      "codeContent": "import com.fasterxml.jackson.annotation.JsonIgnoreProperties;",
+      "aiProbability": 90,
+      "aiTool": "AI Assistant",
+      "detectionMethod": "REALTIME_SPEED_ANALYSIS",
+      "lineCount": 1
+    },
+    {
+      "filePath": "C:/Users/jeron/OneDrive/Desktop/Este_semestre/PROG/playlist/src/main/java/um/playlist/config/OpenApiConfig.java",
+      "timestamp": 1763381851169,
+      "startOffset": 0,
+      "endOffset": 251,
+      "codeContent": "/**\n * Copyright © 2025 integration-projects-maven. All rights reserved.\n * ClassName OpenApiConfig.java\n * author ??????\n * version 1.0.0\n * Description TODO\n * createTime 2025?11?17? 09:17:30\n ???? · ????????????\n */\n\npublic class OpenApiConfig {\n}\n",
+      "aiProbability": 95,
+      "aiTool": "AI Assistant",
+      "detectionMethod": "REALTIME_SPEED_ANALYSIS",
+      "lineCount": 13
+    },
+    {
+      "filePath": "C:/Users/jeron/OneDrive/Desktop/Este_semestre/PROG/playlist/src/main/java/um/playlist/config/OpenApiConfig.java",
+      "timestamp": 1763381851217,
+      "startOffset": 0,
+      "endOffset": 27,
+      "codeContent": "package um.playlist.config;",
+      "aiProbability": 90,
+      "aiTool": "AI Assistant",
+      "detectionMethod": "REALTIME_SPEED_ANALYSIS",
+      "lineCount": 1
+    },
+    {
+      "filePath": "C:/Users/jeron/OneDrive/Desktop/Este_semestre/PROG/playlist/src/main/java/um/playlist/config/OpenApiConfig.java",
+      "timestamp": 1763381900785,
+      "startOffset": 0,
+      "endOffset": 58,
+      "codeContent": "package um.playlist.config;public class OpenApiConfig {\n}\n",
+      "aiProbability": 90,
+      "aiTool": "AI Assistant",
+      "detectionMethod": "REALTIME_SPEED_ANALYSIS",
+      "lineCount": 3
+    },
+    {
+      "filePath": "C:/Users/jeron/OneDrive/Desktop/Este_semestre/PROG/playlist/src/main/java/um/playlist/config/OpenApiConfig.java",
+      "timestamp": 1763381915110,
+      "startOffset": 29,
+      "endOffset": 467,
+      "codeContent": "import org.springframework.context.annotation.Bean;\nimport org.springframework.context.annotation.Configuration;\nimport io.swagger.v3.oas.models.OpenAPI;\nimport io.swagger.v3.oas.models.info.Info;\n\n@Configuration\npublic class OpenApiConfig {\n\n    @Bean\n    public OpenAPI customOpenAPI() {\n        return new OpenAPI()\n            .info(new Info().title(\"Playlist API\").version(\"1.0\").description(\"API del proyecto Playlist - UM\"));\n    }",
+      "aiProbability": 70,
+      "aiTool": "AI Assistant",
+      "detectionMethod": "REALTIME_SPEED_ANALYSIS",
+      "lineCount": 13
+    }
+  ],
+  "toolStats": {
+    "AI Assistant": {
+      "usageCount": 6,
+      "totalLines": 81
+    }
+  }
+}

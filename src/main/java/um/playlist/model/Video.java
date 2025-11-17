@@ -1,8 +1,10 @@
 package um.playlist.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 
 @Entity
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Video {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
