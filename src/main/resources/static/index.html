@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Playlist — UI</title>
+
+    <!-- Bootstrap CSS CDN (rápido para la entrega) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body { padding-top: 2rem; background:#f8f9fa; }
+        .video-card { margin-bottom: 1rem; }
+        .iframe-holder { width:100%; height:315px; border:none; }
+        .small-muted { font-size:0.85rem; color:#6c757d; }
+        .fav-true { color: #e74c3c; font-weight: 600; }
+        .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 1055; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3">Mi Playlist</h1>
+        <div>
+            <button id="btnRefresh" class="btn btn-outline-secondary btn-sm">Refresh</button>
+            <button id="btnSetCreds" class="btn btn-outline-primary btn-sm">Set credentials</button>
+        </div>
+    </div>
+
+    <!-- Avisos -->
+    <div id="alerts"></div>
+
+    <!-- Add video form -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">Agregar video</h5>
+            <form id="formAdd">
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <input id="inputTitle" class="form-control" placeholder="Título" required maxlength="200" />
+                    </div>
+                    <div class="col-md-6">
+                        <input id="inputUrl" class="form-control" placeholder="URL (youtube link o embed)" required maxlength="500" />
+                    </div>
+                </div>
+                <div class="mt-2 d-flex gap-2">
+                    <button class="btn btn-success btn-sm" type="submit">Agregar</button>
+                    <button class="btn btn-outline-secondary btn-sm" id="btnClear" type="button">Limpiar</button>
+                </div>
+                <div class="small-muted mt-2">Para YouTube podés pegar <code>https://youtu.be/ID</code> o <code>https://www.youtube.com/watch?v=ID</code>. Yo lo convertiré a embed automáticamente.</div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Buscador -->
+    <div class="mb-3">
+        <div class="input-group">
+            <input id="searchInput" class="form-control" placeholder="Buscar por título..." />
+            <button id="btnSearch" class="btn btn-outline-secondary">Buscar</button>
+        </div>
+    </div>
+
+    <!-- Lista -->
+    <div id="videosList" class="row"></div>
+
+    <footer class="mt-4 small-muted">
+        Endpoints usados: <code>/api/videos</code>. Si las operaciones POST/DELETE están protegidas, presioná <strong>Set credentials</strong> y poné devuser/devpass (o el user que tengas configurado).
+    </footer>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Bootstrap JS (needed only for toast) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // --- Configuracion ---
+    const baseUrl = ''; // Dejar vacío para usar mismo origen (localhost:8080)
+    const API = (path) => `${baseUrl}/api/videos${path ?? ''}`;
+
+    // Authorization header store (Basic)
+    function getAuthHeader() {
+      const creds = localStorage.getItem('playlist_creds');
+      if (!creds) return {};
+      return { 'Authorization': 'Basic ' + creds };
+    }
+
+    // Guardar credenciales (Base64(username:password))
+    function setCredentialsPrompt() {
+      const user = prompt('Usuario (ej devuser):', 'devuser');
+      if (user === null) return;
+      const pass = prompt('Contraseña (ej devpass):', 'devpass');
+      if (pass === null) return;
+      const token = btoa(user + ':' + pass);
+      localStorage.setItem('playlist_creds', token);
+      showToast('Credenciales guardadas (almacenadas en localStorage)', 'success');
+    }
+
+    // Limpiar credenciales
+    function clearCredentials() {
+      localStorage.removeItem('playlist_creds');
+      showToast('Credenciales eliminadas', 'info');
+    }
+
+    // --- Helpers UI ---
+    function showAlert(msg, type='info') {
+      const div = document.createElement('div');
+      div.innerHTML = `<div class="alert alert-${type} alert-sm alert-dismissible" role="alert">
+        ${escapeHtml(msg)}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>`;
+      document.getElementById('alerts').appendChild(div);
+      setTimeout(() => div.remove(), 8000);
+    }
+
+    function showToast(msg, type='info') {
+      const container = document.getElementById('toastContainer');
+      const toastEl = document.createElement('div');
+      toastEl.className = 'toast align-items-center text-bg-light border';
+      toastEl.innerHTML = `<div class="d-flex">
+        <div class="toast-body">${escapeHtml(msg)}</div>
+        <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>`;
+      container.appendChild(toastEl);
+      const bsToast = new bootstrap.Toast(toastEl);
+      bsToast.show();
+      setTimeout(() => { bsToast.hide(); }, 4000);
+    }
+
+    function escapeHtml(unsafe) {
+      return (unsafe+'').replace(/[&<"']/g, function(m) {
+        return {'&':'&amp;','<':'&lt;','"':'&quot;',"'":'&#039;'}[m];
+      });
+    }
+
+    // Convertir URLs YouTube a embed
+    function toEmbedUrl(url) {
+      if (!url) return url;
+      try {
+        const u = url.trim();
+        if (u.includes('youtube.com/watch?v=')) {
+          return u.replace('watch?v=', 'embed/');
+        }
+        if (u.includes('youtu.be/')) {
+          return u.replace('youtu.be/', 'www.youtube.com/embed/');
+        }
+        // Si ya es embed o es iframe src
+        if (u.includes('youtube.com/embed/')) return u;
+        // Si es un link genérico con /watch? v param, attempt to extract
+        return u;
+      } catch(e) {
+        return url;
+      }
+    }
+
+    // GET list (usamos la paginacion simple en backend si quieres)
+    async function fetchVideos() {
+      try {
+        const headers = {...getAuthHeader()};
+        const resp = await fetch(API(''), { headers });
+        if (!resp.ok) {
+          const text = await resp.text();
+          showAlert(`Error al obtener videos: ${resp.status} ${resp.statusText} — ${text}`, 'danger');
+          return [];
+        }
+        const data = await resp.json();
+        // la API devuelve Page<VideoDTO> — si tiene 'content' úsalo; si es array usa directamente
+        if (Array.isArray(data)) return data;
+        if (data.content) return data.content;
+        return [];
+      } catch (err) {
+        showAlert('Error de red: ' + err.message, 'danger');
+        console.error(err);
+        return [];
+      }
+    }
+
+    // Render list
+    async function renderList(filter='') {
+      const container = document.getElementById('videosList');
+      container.innerHTML = '<div class="col-12 text-center small-muted">Cargando...</div>';
+      const videos = await fetchVideos();
+      const filtered = filter ? videos.filter(v => v.title.toLowerCase().includes(filter.toLowerCase())) : videos;
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="col-12 text-center text-muted">No hay videos.</div>';
+        return;
+      }
+      container.innerHTML = '';
+      filtered.forEach(v => {
+        const col = document.createElement('div');
+        col.className = 'col-md-6 video-card';
+        const embedUrl = toEmbedUrl(v.url || '');
+        col.innerHTML = `
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">${escapeHtml(v.title || '(sin título)')}
+                <span class="small-muted">#${v.id ?? ''}</span>
+              </h5>
+
+              <div class="ratio ratio-16x9 mb-2">
+                ${embedUrl.includes('youtube.com/embed/') ?
+                  `<iframe class="iframe-holder" src="${escapeHtml(embedUrl)}" title="${escapeHtml(v.title || '')}" allowfullscreen></iframe>` :
+                  `<div class="d-flex align-items-center justify-content-center" style="height:100%; background:#0000000a;">URL no embeed: <span class="mx-2">${escapeHtml(v.url)}</span></div>`
+                }
+              </div>
+
+              <p class="card-text small-muted">Likes: <strong id="likes-${v.id}">${v.likes ?? 0}</strong>
+                &nbsp; • &nbsp; Favorite: <span id="fav-${v.id}" class="${v.favorite ? 'fav-true' : ''}">${v.favorite ? 'Sí' : 'No'}</span></p>
+
+              <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-success" data-action="like" data-id="${v.id}">Like</button>
+                <button class="btn btn-sm btn-outline-warning" data-action="fav" data-id="${v.id}">${v.favorite ? 'Unfavorite' : 'Favorite'}</button>
+                <button class="btn btn-sm btn-outline-danger" data-action="delete" data-id="${v.id}">Eliminar</button>
+              </div>
+            </div>
+          </div>
+        `;
+        container.appendChild(col);
+      });
+
+      // attach event listeners
+      container.querySelectorAll('button[data-action]').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const id = btn.getAttribute('data-id');
+          const action = btn.getAttribute('data-action');
+          if (action === 'like') await doLike(id);
+          else if (action === 'fav') await doFav(id);
+          else if (action === 'delete') {
+            if (!confirm('Eliminar video?')) return;
+            await doDelete(id);
+          }
+          await renderList(document.getElementById('searchInput').value.trim());
+        });
+      });
+    }
+
+    // POST create
+    async function doCreate(title, url) {
+      const body = { title, url: toEmbedUrl(url) };
+      try {
+        const headers = { 'Content-Type': 'application/json', ...getAuthHeader() };
+        const resp = await fetch(API(''), {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(body)
+        });
+        if (!resp.ok) {
+          const text = await resp.text();
+          showAlert(`Error al crear: ${resp.status} ${resp.statusText} — ${text}`, 'danger');
+          return null;
+        }
+        const data = await resp.json();
+        showToast('Video creado: ' + (data.title || data.id), 'success');
+        return data;
+      } catch (err) {
+        showAlert('Error de red en crear: ' + err.message, 'danger');
+        console.error(err);
+        return null;
+      }
+    }
+
+    // POST like
+    async function doLike(id) {
+      try {
+        const headers = {...getAuthHeader()};
+        const resp = await fetch(API('/' + id + '/like'), { method: 'POST', headers });
+        if (!resp.ok) {
+          const text = await resp.text();
+          showAlert(`Error like: ${resp.status} ${text}`, 'danger');
+          return;
+        }
+        const data = await resp.json();
+        document.getElementById('likes-' + id).innerText = data.likes ?? 0;
+      } catch (err) {
+        showAlert('Error de red like: ' + err.message, 'danger');
+      }
+    }
+
+    // POST favorite toggle
+    async function doFav(id) {
+      try {
+        const headers = {...getAuthHeader()};
+        const resp = await fetch(API('/' + id + '/favorite'), { method: 'POST', headers });
+        if (!resp.ok) {
+          const text = await resp.text();
+          showAlert(`Error favorite: ${resp.status} ${text}`, 'danger');
+          return;
+        }
+        const data = await resp.json();
+        const favEl = document.getElementById('fav-' + id);
+        favEl.innerText = data.favorite ? 'Sí' : 'No';
+        favEl.className = data.favorite ? 'fav-true' : '';
+      } catch (err) {
+        showAlert('Error de red favorite: ' + err.message, 'danger');
+      }
+    }
+
+    // DELETE
+    async function doDelete(id) {
+      try {
+        const headers = {...getAuthHeader()};
+        const resp = await fetch(API('/' + id), { method: 'DELETE', headers });
+        if (resp.status === 204 || resp.ok) {
+          showToast('Video eliminado', 'success');
+        } else {
+          const text = await resp.text();
+          showAlert(`Error delete: ${resp.status} ${text}`, 'danger');
+        }
+      } catch (err) {
+        showAlert('Error de red delete: ' + err.message, 'danger');
+      }
+    }
+
+    // --- Events ---
+    document.getElementById('formAdd').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('inputTitle').value.trim();
+      const url = document.getElementById('inputUrl').value.trim();
+      if (!title || !url) { showAlert('Rellená título y url', 'warning'); return; }
+      await doCreate(title, url);
+      document.getElementById('formAdd').reset();
+      await renderList(document.getElementById('searchInput').value.trim());
+    });
+
+    document.getElementById('btnClear').addEventListener('click', () => document.getElementById('formAdd').reset());
+    document.getElementById('btnRefresh').addEventListener('click', async () => renderList(document.getElementById('searchInput').value.trim()));
+    document.getElementById('btnSetCreds').addEventListener('click', () => {
+      if (localStorage.getItem('playlist_creds')) {
+        if (confirm('¿Borrar credenciales guardadas?')) clearCredentials();
+      } else {
+        setCredentialsPrompt();
+      }
+    });
+
+    document.getElementById('btnSearch').addEventListener('click', () => renderList(document.getElementById('searchInput').value.trim()));
+    document.getElementById('searchInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') renderList(e.target.value.trim()) });
+
+    // Initial load
+    (async function init() {
+      await renderList();
+    })();
+</script>
+</body>
+</html>
