@@ -1,7 +1,7 @@
 
 pipeline {
 
-    agent {
+    agent any {
         docker {
             image 'maven:3.9.5-jdk-21'
             // Los argumentos montan el caché de Maven y el socket Docker (para Docker-in-Docker)
