@@ -80,4 +80,20 @@ pipeline {
         failure { echo 'Pipeline falló' }
         always { sh 'ls -l target || true' }
     }
+
+    stage('Deploy') {
+        steps {
+            script {
+                def jar = sh(script: "ls target/*.jar | head -n 1", returnStdout:true).trim()
+                if (!jar) error "No se encontró jar para deploy"
+                // Ejecuta script de deploy (asegurate que deploy-mac.sh exista en repo y sea ejecutable)
+                sh "chmod +x ./deploy-mac.sh || true"
+                sh "./deploy-mac.sh"
+            }
+        }
+    }
+
+
+
+
 }
