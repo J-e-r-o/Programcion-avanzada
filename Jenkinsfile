@@ -1,13 +1,6 @@
-
 pipeline {
 
-    agent any {
-        docker {
-            image 'maven:3.9.5-jdk-21'
-            // Los argumentos montan el caché de Maven y el socket Docker (para Docker-in-Docker)
-            args '-v /root/.m2:/root/.m2 -v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+    agent any
 
     environment {
         MVN_OPTS = '-DskipTests=false -B'
