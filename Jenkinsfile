@@ -14,23 +14,22 @@ pipeline {
             }
         }
 
-        stage('Prepare') {
+        stage('Build & Test') {
             steps {
-                sh 'chmod +x mvnw || true'
-            }
-        }
 
-        stage('Build') {
-            steps {
-                // Hace el build de la aplicación (Requisito 2b)
-                sh "mvn ${MVN_OPTS} clean package"
-            }
-        }
+                withMaven(maven: 'M3_HOME') {
 
-        stage('Test') {
-            steps {
-                // Corre tests automáticos (Requisito 2c)
-                sh 'mvn -B test'
+                    echo "Preparando permisos y ejecutando Build con Maven..."
+
+                    // Asegura permisos para el wrapper de Maven (mvnw)
+                    sh 'chmod +x mvnw || true'
+
+                    // Hace el build de la aplicación (Requisito 2b)
+                    sh "mvn ${MVN_OPTS} clean package"
+
+                    // Corre tests automáticos (Requisito 2c)
+                    sh 'mvn -B test'
+                }
             }
         }
 
@@ -45,13 +44,17 @@ pipeline {
         stage('Smoke Run') {
             steps {
                 script {
+                    echo "Iniciando prueba de humo (Smoke Test) en puerto 8082"
                     // Una prueba rápida para asegurar que la app se levanta
                     def jar = sh(script: "ls target/*.jar | head -n 1", returnStdout: true).trim()
                     if (!jar) { error "No se encontró jar en target/" }
+
+                    // Comando Shell multi-línea para levantar la aplicación, esperar y hacer una petición
                     sh """
             nohup java -jar ${jar} --server.port=8082 > pipeline-app.log 2>&1 &
             echo \$! > pipeline-app.pid
             sleep 6
+            # El comando curl con --fail fallará el pipeline si el endpoint no responde OK
             curl --fail http://localhost:8082/api/videos || (cat pipeline-app.log && exit 1)
           """
                 }
@@ -60,6 +63,7 @@ pipeline {
 
         stage('Cleanup') {
             steps {
+                echo "Deteniendo aplicación de prueba de humo"
                 // Detiene la app de la prueba 'Smoke Run'
                 sh '''
           if [ -f pipeline-app.pid ]; then
@@ -70,16 +74,17 @@ pipeline {
             }
         }
 
-        // 🚀 ESTAPA DE DEPLOY CORREGIDA
+        // 🚀 ESTAPA DE DEPLOY
         stage('Deploy') {
             steps {
                 script {
+                    echo "Iniciando proceso de Deploy"
                     // Realiza el deploy (Requisito 2d)
                     def jar = sh(script: "ls target/*.jar | head -n 1", returnStdout:true).trim()
                     if (!jar) error "No se encontró jar para deploy"
 
-                    // Asegúrate de que tu script de deploy maneje el entorno Mac/Windows según el Requisito 3
-                    sh "chmod +x ./deploy-mac.sh || true" // Asegura que el script tenga permisos
+                    // Ejecuta el script de deployment.
+                    sh "chmod +x ./deploy-mac.sh || true"
                     sh "./deploy-mac.sh"
                 }
             }
