@@ -1,26 +1,18 @@
 pipeline {
-    agent {
-        docker {
-            image 'maven:3.9.5-jdk-21'
-            args '-v /root/.m2:/root/.m2 -v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
-
-    environment {
-        MVN_OPTS = '-DskipTests=false -B'
-    }
+    agent any
 
     stages {
-        stage('Checkout') {
-            steps { checkout scm }
-        }
+        stage('Checkout') { steps { checkout scm } }
 
         stage('Build') {
-            steps { sh "mvn ${MVN_OPTS} clean package" }
+            steps {
+                sh 'chmod +x mvnw || true'
+                sh './mvnw -B -DskipTests=false clean package'
+            }
         }
 
         stage('Test') {
-            steps { sh 'mvn -B test' }
+            steps { sh './mvnw test' }
         }
 
         stage('Archive') {
@@ -71,6 +63,7 @@ pipeline {
     post {
         success { echo 'Pipeline finalizado OK' }
         failure { echo 'Pipeline falló' }
-        always { sh 'ls -l target || true' }
+        always { echo 'Fin del pipeline'; sh 'ls -l target || true' }
     }
 }
+
