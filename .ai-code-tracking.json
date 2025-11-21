@@ -66,12 +66,23 @@
       "aiTool": "AI Assistant",
       "detectionMethod": "REALTIME_SPEED_ANALYSIS",
       "lineCount": 13
+    },
+    {
+      "filePath": "C:/Users/jeron/OneDrive/Desktop/Este_semestre/PROG/Entregable4DeLeon/playlist/src/test/java/um/playlist/controller/VideoRestControllerTest.java",
+      "timestamp": 1763694194686,
+      "startOffset": 625,
+      "endOffset": 1447,
+      "codeContent": "import org.springframework.security.test.context.support.WithMockUser;\n\n@WebMvcTest(VideoRestController.class)\n@WithMockUser(username \u003d \"devuser\", roles \u003d {\"USER\"})\nclass VideoRestControllerTest {\n    @Autowired MockMvc mvc;\n    @MockBean VideoService service;\n\n    @Test\n    void getNotFound() throws Exception {\n        when(service.find(999L)).thenReturn(Optional.empty());\n        mvc.perform(get(\"/api/videos/999\"))\n                .andExpect(status().isNotFound());\n    }\n\n    @Test\n    void getOk() throws Exception {\n        Video v \u003d new Video();\n        v.setId(1L); v.setTitle(\"t\"); v.setUrl(\"u\");\n        when(service.find(1L)).thenReturn(Optional.of(v));\n        mvc.perform(get(\"/api/videos/1\"))\n                .andExpect(status().isOk())\n                .andExpect(jsonPath(\"$.title\").value(\"t\"));\n    }\n}\n",
+      "aiProbability": 95,
+      "aiTool": "AI Assistant",
+      "detectionMethod": "REALTIME_SPEED_ANALYSIS",
+      "lineCount": 26
     }
   ],
   "toolStats": {
     "AI Assistant": {
-      "usageCount": 6,
-      "totalLines": 81
+      "usageCount": 7,
+      "totalLines": 107
     }
   }
 }

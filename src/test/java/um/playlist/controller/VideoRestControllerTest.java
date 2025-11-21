@@ -12,7 +12,10 @@ import um.playlist.model.Video;
 import java.util.Optional;
 import static org.mockito.Mockito.*;
 
+import org.springframework.security.test.context.support.WithMockUser;
+
 @WebMvcTest(VideoRestController.class)
+@WithMockUser(username = "devuser", roles = {"USER"})
 class VideoRestControllerTest {
     @Autowired MockMvc mvc;
     @MockBean VideoService service;
@@ -34,3 +37,4 @@ class VideoRestControllerTest {
                 .andExpect(jsonPath("$.title").value("t"));
     }
 }
+
